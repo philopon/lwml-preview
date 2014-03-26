@@ -1,0 +1,9 @@
+!!!
+<html>
+  <head>
+    <title>#{progName} - #{either id id $ PC.toText file}
+    <script type="text/javascript" src="#{T.decodeUtf8 js}">
+    <link rel="stylesheet" type="text/css" href="#{T.decodeUtf8 css}">
+  <body>
+    <div id="preview">
+

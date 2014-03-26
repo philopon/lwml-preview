@@ -1,0 +1,14 @@
+window.onload = function(){
+  var ws       = new WebSocket('ws://localhost:#{port}');
+  var preview  = document.getElementById('preview');
+
+  ws.onmessage = function(event){
+    preview.innerHTML = event.data;
+  }
+
+  ws.onopen = function(event){
+    setInterval(function(){
+        ws.send("ping");
+        }, 10000);
+  }
+}
