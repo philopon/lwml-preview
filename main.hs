@@ -94,7 +94,7 @@ run customCss port file refractory = FSNotify.withManager $ \mgr -> do
 
     FSNotify.watchTreeChan mgr (P.directory file) (const True) fsnotif
 
-    void . forkIO . void . flip runStateT (posixSecondsToUTCTime 0) . forever $ do
+    tid <- forkIO . void . flip runStateT (posixSecondsToUTCTime 0) . forever $ do
         lasttime <- get
         notif    <- liftIO $ readChan fsnotif
         when (FSNotify.eventTime notif `diffUTCTime` lasttime > refractory) $ do
@@ -102,6 +102,7 @@ run customCss port file refractory = FSNotify.withManager $ \mgr -> do
             html <- liftIO $ readHTML file
             liftIO . modifyMVar_ clients $ filterM (\(_,c) ->
                 (True <$ WS.sendDataMessage c (WS.Text html))
+                `catch` (\ThreadKilled       -> return False)
                 `catch` (\(e::SomeException) -> print e >> return False)
                 )
 
@@ -110,8 +111,9 @@ run customCss port file refractory = FSNotify.withManager $ \mgr -> do
     js  <- name "js"
     css <- name "css"
 
-    Warp.run port $ WS.websocketsOr WS.defaultConnectionOptions 
-        (serverApp serial clients file) (application customCss file js css port)
+    Warp.run port (WS.websocketsOr WS.defaultConnectionOptions 
+        (serverApp serial clients file) (application customCss file js css port))
+        `finally` (killThread tid)
 
 readPandoc :: Pandoc.ReaderOptions -> P.FilePath -> IO Pandoc.Pandoc
 readPandoc conf file = 
